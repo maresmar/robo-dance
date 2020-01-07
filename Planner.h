@@ -2,16 +2,14 @@
 #define PLAN_PARSER_HEADER
 // Only include one please, because of the static variables that should really
 // be in .cpp files
-#include <cassert>
-#include <cctype>
-#include <cstdint>
-#include <cstdlib>
+#include <ctype.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 #include "Plan.h"
 
 #ifndef RUNNING_TESTS
-//#include <Arduino.h>
 #define PL_PRINT_PARSE_ERR_STR(x) (Serial.println(x))
 #else
 #define F(x) x
@@ -37,7 +35,7 @@ struct StringGetter {
     return c;
   }
   void skip_whitespace() {
-    while (str && std::isspace(*str))
+    while (str && isspace(*str))
       ++str;
   }
   char peek_next(bool skip_whitespace = true) {
@@ -58,11 +56,12 @@ static ParseError parseCommand(const char str[2 + 5 + 1],
 // Parse null terminated string of length max 8, str[0,1]==Coords,
 // str[2+]==timepoint integer.
 static ParseError parseInitPos(const char *str, RobotConfig &initConfig);
-static ParseError preparseCmd(StringGetter &getter,
+template<typename CharGetter>
+static ParseError preparseCmd(CharGetter &getter,
                               char command_str[2 + 5 + 1]) {
   command_str[0] = getter.getNext();
   command_str[1] = getter.getNext();
-  char t = std::tolower(getter.getNext());
+  char t = tolower(getter.getNext());
   if (t == '\0')
     return ParseError::UnexpectedEnd;
   if (t != 't')
@@ -77,7 +76,7 @@ static ParseError preparseCmd(StringGetter &getter,
   for (int i = 0; i < 6; ++i) {
     char last = command_str[2 + i] = getter.getNext(false);
     // The number ended
-    if (last == '\0' || std::isspace(last)) {
+    if (last == '\0' || isspace(last)) {
       command_str[2 + i] = '\0';
       break;
     } else if (i == 5) // Time won't fit into 16bits
@@ -95,7 +94,7 @@ constexpr const static uint8_t NumEEPROMSlots = 4;
 class Planner {
 public:
   static bool loadDefault() {
-    const char *str = "B1N E1T150 b2T350 3At450 4CT567 D2T700";
+    static const char * const str = "B1N E1T150 b2T350 3At450 4CT567 D2T700";
     return loadFromString(str);
   }
   static bool loadFromString(const char *str) {
@@ -138,7 +137,8 @@ private:
       break;
     };
   }
-  static ParseError load(StringGetter &getter) {
+	template<typename CharGetter>
+  static ParseError load(CharGetter &getter) {
     char init_pos[3];
     init_pos[0] = getter.getNext();
     init_pos[1] = getter.getNext();
@@ -181,7 +181,7 @@ private:
 
   // Skips any whitespace symbols
   static void skip_whitespace(const char *&str) {
-    while (str && std::isspace(*str))
+    while (str && isspace(*str))
       ++str;
   }
 // For easier testing, do not  misuse!
@@ -205,10 +205,10 @@ RobotConfig Planner::active_init_pos;
 
 static ParseError parseCoords(const char str[2], bool &col_first, uint8_t &row,
                               uint8_t &col) {
-  col_first = std::isalpha(str[0]);
+  col_first = isalpha(str[0]);
   uint8_t col_index = col_first ? 0 : 1;
   uint8_t row_index = 1 - col_index;
-  col = std::tolower(str[col_index]) - 'a' + 1;
+  col = tolower(str[col_index]) - 'a' + 1;
   row = str[row_index] - '0';
 
   return (col < 1 || col > 9 || row < 1 || row > 9) ? ParseError::InvalidCoords
@@ -222,7 +222,7 @@ static ParseError parseInitPos(const char *str, RobotConfig &initConfig) {
   ParseError coords_err = parseCoords(str, col_first, row, col);
   if (coords_err != ParseError::OK)
     return coords_err;
-  CurrDir init_dir = (CurrDir)std::toupper(str[2]);
+  CurrDir init_dir = (CurrDir)toupper(str[2]);
 
   if (init_dir != CurrDir::NORTH && init_dir != CurrDir::SOUTH &&
       init_dir != CurrDir::EAST && init_dir != CurrDir::WEST)
@@ -241,7 +241,7 @@ static ParseError parseCommand(const char str[2 + 5 + 1],
   if (coords_err != ParseError::OK)
     return coords_err;
 
-  int timePoint = std::atoi(str + 2);
+  int timePoint = atoi(str + 2);
   if (timePoint == 0)
     return ParseError::InvalidTime;
 

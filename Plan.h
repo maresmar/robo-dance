@@ -1,11 +1,7 @@
 #ifndef PLANNER_HEADER
 #define PLANNER_HEADER
 
-#include <cassert>
-#include <cctype>
-#include <cstdint>
-#include <cstdlib>
-#include <stdio.h>
+#include <ctype.h>
 
 enum PlanEntry : uint8_t {
   Left,
