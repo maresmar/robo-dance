@@ -95,8 +95,8 @@ class ExecutionTask : public RobotTask {
     unsigned long _start;
     bool _finished = false;
 
-    void featchNextStep() {
-        switch (_plan.getNext(millis() - _start))
+    void featchNextStep(bool go_home) {
+        switch (go_home ? _plan.goHome() : _plan.getNext(millis() - _start))
         {
         case Left:
             _step = TurnStep(true);
@@ -119,7 +119,7 @@ class ExecutionTask : public RobotTask {
     }
   public:
     ExecutionTask(): _plan() {
-      featchNextStep();
+      featchNextStep(false);
     }
 
     virtual void start(Plan&& plan) {
@@ -131,12 +131,12 @@ class ExecutionTask : public RobotTask {
         return _finished;
     }
     
-    virtual void tick(sensors_t& sensors, Motor& left_motor, Motor& right_motor) {
+    virtual void tick(sensors_t& sensors, Motor& left_motor, Motor& right_motor, boolean go_home = false) {
         if(!_finished) {
             _step.tick(sensors, left_motor, right_motor);
             if(_step.isDone()) {
-                featchNextStep();
-        }
+                featchNextStep(go_home);
+            }
         }
     }
 };

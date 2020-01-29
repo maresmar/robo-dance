@@ -19,9 +19,10 @@
 
 
 enum state_t {
-  stoped,
-  running,
-  returning
+  waiting,
+  starting,
+  executing,
+  going_home
 };
 
 static Motor left_motor, right_motor;
@@ -50,11 +51,14 @@ void setup() {
   pinMode(RIGHT_LINE_SENSOR_PORT, INPUT);
   pinMode(RIGHT_DIR_SENSOR_PORT, INPUT);
 
-  state = stoped;
+  state = waiting;
   button_pressed = false;
 
+  // Loads the default plan - either from hardcoded string or a previously
+  // saved plan stored in EEPROM.
   Planner::loadDefault();
-  exe_task.start(Planner::getActivePlan());
+  // Any plan can be explicitly loaded from string for debugging purposes.
+  // Planner::loadFromString("<PLAN>");
 }
 
 void readButton() {
@@ -64,11 +68,14 @@ void readButton() {
     already_pressed = true;
 
     // Toggle enabled mode
-    if (state == stoped) {
-      state = last_state;
-    } else {
-      last_state = state;
-      state = stoped;
+    switch (state)
+    {
+    case waiting:
+      state = starting;
+      break;
+    case executing:
+      state = going_home;
+      break;
     }
   }
   if (!pressed)
@@ -91,7 +98,54 @@ void loop() {
   readButton();
   readSensors();
 
-  if(state != stoped) {
-    exe_task.tick(sensors, left_motor, right_motor);
+  switch(state) {
+    case waiting:
+      Planner::processRemoteRequests();
+      break;
+    case starting:
+      exe_task.start(Planner::getActivePlan());
+      state = executing;
+    case executing:
+      exe_task.tick(sensors, left_motor, right_motor);
+      break;
+    case going_home:
+      exe_task.tick(sensors, left_motor, right_motor, true);
+      if(exe_task.isFinished())
+        state = waiting;
+      break;
   }
 }
+
+/*
+Robots stores up to X plans in its EEPROM. On startup the robot tries to load
+its default plan = specified by the default slot. If its empty, it loads a plan
+from hardcoded string. Otherwise it loads the plan saved at that default slot.
+I.e. by default the robots always executes a non-empty plan.
+
+The default slot can be changed to other numbers.
+
+Robot remote commands before pressing the button:
+  CX - clears EEPROM memory belonging to X-th slot.
+  DX - sets slot X as the default slot.
+  SX <plan> - Saves transmitted plan to slot X. Does NOT set this slot as
+default. LX - Loads plan stored at slot X.
+
+Hence a command is represented by two letters - {C,D,S,L} and a digit.
+These letters must be the first two bytes of serial input, no leading or
+intermediate whitespace is allowed.
+
+After getting a new robot it is recommended to boot it up, clear all slots using
+CX commands and set the default slot with DX, then perform a restart. Otherwise
+the memory of X-th slot wil be interpretted as correct plan and fail if that
+will not be the case.
+  = If one gets unreasonable ParsingError on startup, this
+is the reason.
+  - If default slot is incorrect, no plan will be loaded and warning will be
+printed.
+
+EEPROM contents:
+0     byte  - the default slot, [0,N=NumEEPROMSlots)
+Nx4   bytes - EEPROMSlotInfo = slot's header with num of entries and starting
+              RobotConfig.
+Nx(Bx3)bytes- For each slot, block of B=MaxPlanLength CompPlanEntries.
+*/
