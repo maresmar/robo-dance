@@ -11,12 +11,11 @@
 #define RIGHT_MOTOR_PORT 13
 #define MAX_SPEED_PERCENT 33
 // Sensors
-#define LEFT_DIR_SENSOR_PORT 25
-#define LEFT_LINE_SENSOR_PORT 25
-#define MIDLE_LINE_SENSOR_PORT 25
-#define RIGHT_LINE_SENSOR_PORT 25
-#define RIGHT_DIR_SENSOR_PORT 25
-
+#define LEFT_DIR_SENSOR_PORT 3
+#define LEFT_LINE_SENSOR_PORT 4
+#define MIDLE_LINE_SENSOR_PORT 5
+#define RIGHT_LINE_SENSOR_PORT 6
+#define RIGHT_DIR_SENSOR_PORT 7
 
 
 enum state_t {
@@ -92,5 +91,7 @@ void loop() {
   readButton();
   readSensors();
 
-  exe_task.tick(sensors, left_motor, right_motor);
+  if(state != stoped) {
+    exe_task.tick(sensors, left_motor, right_motor);
+  }
 }
