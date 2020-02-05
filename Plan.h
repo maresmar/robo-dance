@@ -1,5 +1,5 @@
-#ifndef PLANNER_HEADER
-#define PLANNER_HEADER
+#ifndef PLAN_HEADER
+#define PLAN_HEADER
 
 #include <ctype.h>
 #include <stdint.h>
