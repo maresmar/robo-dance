@@ -51,16 +51,17 @@ private:
   String str;
   StringGetter getter;
 };
-struct EEPROMGetter {};
+
 // Info about one plan
 struct EEPROMSlotInfo {
   RobotConfig config;
-  uint8_t num_entries;
+  uint8_t num_entries = 0;
 };
 static_assert(sizeof(EEPROMSlotInfo) == 4,
               "Program was designed with 4 bytes header per slot. If changed, "
               "ensure that all plans and their headers fit into the EEPROM.");
 
+// First byte is the default slot number.
 constexpr const size_t EEPROM_header_size =
     1 + NumEEPROMSlots * sizeof(EEPROMSlotInfo);
 constexpr const size_t EEPROM_plan_size = MaxPlanLength * sizeof(CompPlanEntry);
@@ -143,8 +144,8 @@ bool Planner::loadDefault() {
   EEPROMSlotInfo info;
   if (def_slot < 0 || def_slot >= NumEEPROMSlots) {
     Serial.println(F("WARNING: Invalid default slot, uninitialized EEPROM? Fix "
-                     "me with DX command. No plan loaded."));
-    return false;
+                     "me with DX command. Loading hardcoded string backup."));
+    return loadFromString(str);
   }
   Serial.print(F("INFO: Loading the default plan from slot "));
   Serial.println(def_slot);
@@ -185,11 +186,11 @@ bool Planner::processRemoteRequests() {
   } else if (cmd == 'S') {
     if (!loadFromSerial())
       return false;
-    Serial.print(F("INFO: Plan loaded, num_entries:"));
+    Serial.print(F("INFO: Plan loaded, number of commands:"));
     saveToEEPROM(slot);
   } else if (cmd == 'L') {
     loadFromEEPROM(slot);
-    Serial.print(F("INFO: Plan loaded, num_entries:"));
+    Serial.print(F("INFO: Plan loaded, number of commands:"));
     Serial.println(num_active_entries);
   } else if (cmd == 'D') {
     EEPROM.put(0, (int8_t)cmd);
@@ -221,8 +222,8 @@ void Planner::loadFromEEPROM(int slot) {
   active_init_config = info.config;
 
   // Skip header and stored plans.
-  int offset = 1 + sizeof(EEPROMSlotInfo) * NumEEPROMSlots +
-               slot * MaxPlanLength * sizeof(CompPlanEntry);
+  int offset =
+      EEPROM_header_size + slot * MaxPlanLength * sizeof(CompPlanEntry);
   for (int i = 0; i < num_active_entries; ++i)
     EEPROM.get(offset + i * sizeof(CompPlanEntry), active_entries[i]);
 }
@@ -241,7 +242,7 @@ void Planner::saveToEEPROM(int slot) {
 void Planner::clearEEPROM(int slot) {
   assert(slot >= 0 && slot < NumEEPROMSlots);
   EEPROMSlotInfo empty;
-  empty.num_entries = 0;
+  // First byte is the default slot number
   EEPROM.put(1 + slot * sizeof(EEPROMSlotInfo), empty);
   int offset = EEPROM_header_size + slot * EEPROM_plan_size;
   for (int i = 0; i < EEPROM_plan_size; i++)
