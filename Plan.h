@@ -48,13 +48,21 @@ public:
   PlanEntry goHome();
 
 private:
-  PlanEntry getNextStep(CompPlanEntry &cmd, unsigned long miliTimeElapsed);
-
-  Direction desired_dir();
-  // Returns whether the robot rotated and if so, which way.
-  bool rotate(PlanEntry &rot_cmd);
-  // Returns whether the robot went straight
-  bool goStraight();
+  // Returns next instruction that will eventually satisfy the passed command.
+  // Returns Finished when that happens.
+  PlanEntry getNextStep(const CompPlanEntry &cmd,
+                        unsigned long miliTimeElapsed);
+  // Returns the direction that the robot would like to face to complete the
+  // passed command.
+  Direction desired_dir(const CompPlanEntry &cmd);
+  // If the robot wants to rotate in order to fulfill its command, it returns
+  // either LEFT or RIGHT and rotates the current position. Otherwise it returns
+  // Go but does not move the robot.
+  PlanEntry rotate(const CompPlanEntry &cmd);
+  // Returns whether the robot wanted to and went straight.
+  // It assumes that the robot tried to rotate and did not want to. I.e. rotate
+  // returned Go.
+  bool goStraight(const CompPlanEntry &cmd);
 
   CompPlanEntry *entries;
   uint8_t num_entries;

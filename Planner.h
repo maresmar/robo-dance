@@ -21,11 +21,15 @@ enum class ParseError {
 // Parses two-letter string into coordinates.
 ParseError parseCoords(const char str[2], bool &col_first, uint8_t &row,
                        uint8_t &col);
+
 // Parsers string of len 3: 'XYZ', X\in{1..9}, Y\in{A...I}, Z==CurrDir
 ParseError parseCommand(const char str[2 + 5 + 1], CompPlanEntry &newEntry);
+
 // Parse null terminated string of length max 8, str[0,1]==Coords,
 // str[2+]==timepoint integer.
 ParseError parseInitPos(const char *str, RobotConfig &initConfig);
+// Parses one command from the input stream into the array.
+// The cmd in the array has a format of: 'XY12345\0'
 template <typename CharGetter>
 ParseError preparseCmd(CharGetter &getter, char command_str[2 + 5 + 1]);
 
@@ -36,6 +40,7 @@ constexpr const static uint8_t NumEEPROMSlots = 5;
 // Responsible for loading and saving plans.
 class Planner {
 public:
+  // Loads the plan either from non-empty default EEPROM slot or from a backup string.
   static bool loadDefault();
   static bool loadFromString(const char *str);
   // Checks whether someones sent any remote commands and processes them if so.
