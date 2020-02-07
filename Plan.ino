@@ -73,9 +73,6 @@ PlanEntry Plan::getNextStep(const CompPlanEntry &cmd,
   uint16_t deciTimeElapsed = miliTimeElapsed / 100;
   Direction c_dir = curr_pos.curr_dir;
 
-  // Too early
-  if (deciTimeElapsed < cmd.timePoint)
-    return PlanEntry::Wait;
   // Try to rotate
   PlanEntry rot_cmd = rotate(cmd);
   if (rot_cmd != PlanEntry::Go)
@@ -83,6 +80,16 @@ PlanEntry Plan::getNextStep(const CompPlanEntry &cmd,
   // Did not want to rotate, try to move.
   if (goStraight(cmd))
     return PlanEntry::Go;
+  // Too early
+  if (deciTimeElapsed < cmd.timePoint)
+  {
+    Serial.print("TIME:");
+    Serial.print(deciTimeElapsed);
+    Serial.print("; ");
+    Serial.println(cmd.timePoint);
+
+    return PlanEntry::Wait;
+  }
   // The command is already finished, fetch a new one.
   return PlanEntry::Finished;
 }
