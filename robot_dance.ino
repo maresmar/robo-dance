@@ -62,7 +62,7 @@ void setup() {
 }
 
 void readButton() {
-  bool pressed = !digitalRead(2);
+  bool pressed = !digitalRead(BUTTON_PORT);
 
   if (pressed && !already_pressed) {
     already_pressed = true;
