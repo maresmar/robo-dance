@@ -139,7 +139,7 @@ void printErrMsg(ParseError e) {
   };
 }
 bool Planner::loadDefault() {
-  static const char *const str = "B1N E1T150 b2T350 3At450 4CT567 D2T700";
+  static const char *const str = "A1N E1T150 b2T350 3At450 4CT567 D2T700 ";
   int8_t def_slot;
   EEPROM.get(0, def_slot);
   EEPROMSlotInfo info;

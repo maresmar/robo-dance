@@ -81,8 +81,14 @@ PlanEntry Plan::getNextStep(const CompPlanEntry &cmd,
   if (goStraight(cmd))
     return PlanEntry::Go;
   // Too early
-  if (deciTimeElapsed < cmd.timePoint)
+  if (deciTimeElapsed < cmd.timePoint) {
+    Serial.print("TIME:");
+    Serial.print(deciTimeElapsed);
+    Serial.print("; ");
+    Serial.println(cmd.timePoint);
+
     return PlanEntry::Wait;
+  }
   // The command is already finished, fetch a new one.
   return PlanEntry::Finished;
 }
@@ -113,18 +119,30 @@ PlanEntry Plan::rotate(const CompPlanEntry &cmd) {
   if (areOpposite(c_dir, d_dir)) {
     bool on_inner_edge = curr_pos.row == 1 || curr_pos.column == 1;
     bool east_south = c_dir == C::EAST || c_dir == C::SOUTH;
-    // Always turn towards lower coordinates, except on the inner edges.
-    if (on_inner_edge ^ east_south) {
-      curr_pos.curr_dir = rotateRight(c_dir);
-      return P::Right;
-    } else {
-      curr_pos.curr_dir = rotateLeft(c_dir);
-      return P::Left;
+    PlanEntry rot;
+    switch (c_dir) {
+    case C::NORTH:
+      rot = curr_pos.column > 1 ? P::Left : P::Right;
+      break;
+    case C::EAST:
+      rot = curr_pos.row > 1 ? P::Right : P::Left;
+      break;
+    case C::SOUTH:
+      rot = curr_pos.column > 1 ? P::Right : P::Left;
+      break;
+    case C::WEST:
+      break;
+      rot = curr_pos.row > 1 ? P::Left : P::Right;
     }
-  }
 
-  curr_pos.curr_dir = d_dir;
-  return rotateRight(c_dir) == d_dir ? P::Right : P::Left;
+    curr_pos.curr_dir =
+        rot == P::Right ? rotateRight(c_dir) : rotateLeft(c_dir);
+
+    return rot;
+  } else {
+    curr_pos.curr_dir = d_dir;
+    return rotateRight(c_dir) == d_dir ? P::Right : P::Left;
+  }
 }
 
 // Returns whether the robot went straight
