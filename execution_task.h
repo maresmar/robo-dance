@@ -30,8 +30,10 @@ private:
 public:
     virtual void tick(sensors_t& sensors, Motor& left_motor, Motor& right_motor) {
         // Detect line
-        if((sensors.left_dir && sensors.left_line) || (sensors.right_line && sensors.right_dir))
+        if((sensors.left_dir && sensors.left_line) || (sensors.right_line && sensors.right_dir)) {
+            Serial.println("exe: GO: ON_LINE");
             _line_time = millis();
+        }
         // Controll mothors
         if(millis() - _line_time <= LINE_OFFSET_TIME) {
             left_motor.go(MAX_SPEED_PERCENT);
@@ -64,15 +66,20 @@ public:
                     left_motor.go(MAX_SPEED_PERCENT);
                     right_motor.go(-MAX_SPEED_PERCENT);
                 }
-                if(!sensors.midle_line)
+                if(!sensors.midle_line) {
+                    Serial.println("exe: Tx: LOST_CENTER");
                     _step = LOST_CENTER;
+                }
                 break;
             case LOST_CENTER:
-                if(sensors.left_dir || sensors.right_dir)
+                if(sensors.left_dir || sensors.right_dir) {
+                    Serial.println("exe: Tx: LINE_OUTSIDE");
                     _step = LINE_OUTSIDE;
+                }
                 break;
             case LINE_OUTSIDE:
                 if(sensors.midle_line) {
+                    Serial.println("exe: Tx: FOUND_CENTER");
                     left_motor.go(0);
                     right_motor.go(0);
                     _step = FOUND_CENTER;
@@ -91,7 +98,7 @@ public:
 class ExecutionTask {
   private:
     Plan _plan;
-    PlanStep&& _step = WaitStep();
+    PlanStep* _step = 0;
     unsigned long _start;
     bool _finished;
 
@@ -103,23 +110,24 @@ class ExecutionTask {
         Serial.print("): ");
 
         // Next step
+        delete _step;
         switch (go_home ? _plan.goHome() : _plan.getNext(time))
         {
         case Left:
             Serial.print("TL");
-            _step = TurnStep(true);
+            _step = new TurnStep(true);
             break;
         case Right:
             Serial.print("TR");
-            _step = TurnStep(false);
+            _step = new TurnStep(false);
             break;
         case Go: // Go straight through one junction
             Serial.print("GO");
-            _step = GoStep();
+            _step = new GoStep();
             break;
         case Wait:
             Serial.print("wait");
-            _step = WaitStep();
+            _step = new WaitStep();
             break;
         case Finished:
             Serial.println("DONE");
@@ -150,8 +158,8 @@ class ExecutionTask {
     
     void tick(sensors_t& sensors, Motor& left_motor, Motor& right_motor, boolean go_home = false) {
         if(!_finished) {
-            _step.tick(sensors, left_motor, right_motor);
-            if(_step.isDone()) {
+            _step->tick(sensors, left_motor, right_motor);
+            if(_step->isDone()) {
                 Serial.println(" [OK]");
                 featchNextStep(go_home);
             }
