@@ -105,7 +105,8 @@ ParseError parseCommand(const char str[2 + 5 + 1], CompPlanEntry &newEntry) {
     return coords_err;
 
   int timePoint = atoi(str + 2);
-  if (timePoint == 0)
+  //atoi failed and time really is not a zero.
+  if (timePoint == 0 && str[2]!='0')
     return ParseError::InvalidTime;
 
   newEntry.column = col & 0x0F;
@@ -152,7 +153,7 @@ bool Planner::loadDefault() {
 
   EEPROM.get(1 + def_slot * sizeof(EEPROMSlotInfo), info);
   if (info.num_entries == 0) {
-    Serial.print(
+    Serial.println(
         F("WARNING: The plan is empty, loading hardcoded string backup."));
     return loadFromString(str);
   } else {
@@ -172,28 +173,32 @@ bool Planner::loadFromString(const char *str) {
 bool Planner::processRemoteRequests() {
   if (Serial.available() < 2)
     return false;
+
   char cmd = Serial.read();
   int slot = Serial.read() - '0';
 
   if (slot < 0 || slot >= NumEEPROMSlots) {
     Serial.print(F("ERROR: Wrong slot. Allowed slots are 0 to "));
-    Serial.println(NumEEPROMSlots);
+    Serial.println(NumEEPROMSlots-1);
     return false;
   }
 
   if (cmd == 'C') {
     clearEEPROM(slot);
   } else if (cmd == 'S') {
-    if (!loadFromSerial())
+    if (!loadFromSerial()){
+      Serial.readString();
       return false;
+    }
     Serial.print(F("INFO: Plan loaded, number of commands:"));
+    Serial.println(num_active_entries);
     saveToEEPROM(slot);
   } else if (cmd == 'L') {
     loadFromEEPROM(slot);
     Serial.print(F("INFO: Plan loaded, number of commands:"));
     Serial.println(num_active_entries);
   } else if (cmd == 'D') {
-    EEPROM.put(0, (int8_t)cmd);
+    EEPROM.put(0, (int8_t)slot);
     Serial.println(F("INFO: Default slot changed."));
   } else {
     Serial.println(F("ERROR: Unknown command."));
@@ -247,4 +252,6 @@ void Planner::clearEEPROM(int slot) {
   int offset = EEPROM_header_size + slot * EEPROM_plan_size;
   for (int i = 0; i < EEPROM_plan_size; i++)
     EEPROM.update(offset + i, 0);
+
+  Serial.write("Slot cleared");
 }
