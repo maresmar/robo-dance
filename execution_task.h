@@ -35,16 +35,20 @@ public:
         case WAITING_LINE:
             if((sensors.left_dir && sensors.left_line) || (sensors.right_line && sensors.right_dir)) {
                 Serial.println("exe: GO: WAITING_STOP");
+                // Fix if one wheel already stoped
+                left_motor.go(MAX_SPEED_PERCENT);
+                right_motor.go(MAX_SPEED_PERCENT);
+                // Update state
                 _line_time = millis();
                 _step = WAITING_STOP;
                 break;
             }
             if(sensors.left_line) {
-                left_motor.go(0);
+                left_motor.go(MAX_SPEED_PERCENT/2);
                 right_motor.go(MAX_SPEED_PERCENT);
             } else if(sensors.right_line) {
                 left_motor.go(MAX_SPEED_PERCENT);
-                right_motor.go(0);
+                right_motor.go(MAX_SPEED_PERCENT/2);
             } else {
                 left_motor.go(MAX_SPEED_PERCENT);
                 right_motor.go(MAX_SPEED_PERCENT);
