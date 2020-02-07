@@ -131,8 +131,8 @@ PlanEntry Plan::rotate(const CompPlanEntry &cmd) {
       rot = curr_pos.column > 1 ? P::Right : P::Left;
       break;
     case C::WEST:
-      break;
       rot = curr_pos.row > 1 ? P::Left : P::Right;
+      break;
     }
 
     curr_pos.curr_dir =
