@@ -31,10 +31,4 @@ struct sensors_t {
     bool right_dir;
 };
 
-class RobotTask {
-  public:
-    virtual bool isFinished() = 0;
-    virtual void tick(sensors_t& sensors, Motor& left_motor, Motor& right_motor, bool go_home = false) = 0;
-};
-
 #endif

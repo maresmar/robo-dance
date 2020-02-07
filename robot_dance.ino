@@ -67,7 +67,7 @@ void readButton() {
   if (pressed && !already_pressed) {
     already_pressed = true;
 
-    // Toggle enabled mode
+    // Change state
     switch (state)
     {
     case waiting:
@@ -100,18 +100,25 @@ void loop() {
 
   switch(state) {
     case waiting:
+      setLed(false);
       Planner::processRemoteRequests();
       break;
     case starting:
+      Serial.println("main: Starting");
+      setLed(true);
       exe_task.start(Planner::getActivePlan());
       state = executing;
     case executing:
       exe_task.tick(sensors, left_motor, right_motor);
       break;
     case going_home:
+      Serial.println("main: Going home");
       exe_task.tick(sensors, left_motor, right_motor, true);
       if(exe_task.isFinished())
         state = waiting;
+      break;
+    default:
+      Serial.println("ERROR: main: loop");
       break;
   }
 }

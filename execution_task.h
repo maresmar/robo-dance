@@ -88,53 +88,71 @@ public:
     }
 };
 
-class ExecutionTask : public RobotTask {
+class ExecutionTask {
   private:
     Plan _plan;
     PlanStep&& _step = WaitStep();
     unsigned long _start;
-    bool _finished = false;
+    bool _finished;
 
     void featchNextStep(bool go_home) {
-        switch (go_home ? _plan.goHome() : _plan.getNext(millis() - _start))
+        // Time info
+        Serial.print("exe(");
+        unsigned long time = millis() - _start;
+        Serial.print(time);
+        Serial.print("): ")
+
+        // Next step
+        switch (go_home ? _plan.goHome() : _plan.getNext(time))
         {
         case Left:
+            Serial.print("exe: TL");
             _step = TurnStep(true);
             break;
         case Right:
+            Serial.print("exe: TR");
             _step = TurnStep(false);
             break;
         case Go: // Go straight through one junction
+            Serial.print("exe: GO");
             _step = GoStep();
             break;
         case Wait:
+            Serial.print("exe: wait");
             _step = WaitStep();
             break;
         case Finished:
+            Serial.println("exe: DONE");
             _finished  = true;
             break;
         default:
+            Serial.println("ERROR: exe: featchNextStep()");
             break;
         }
     }
   public:
     ExecutionTask(): _plan() {
-      featchNextStep(false);
+        _finished = false;
+        _start = millis();
+        featchNextStep(false);
     }
 
-    virtual void start(Plan&& plan) {
-      _plan = plan;
-      _start = millis();
+    void start(Plan&& plan) {
+        _plan = plan;
+        _finished = false;
+        _start = millis();
+        featchNextStep(false);
     }
 
-    virtual bool isFinished() {
+    bool isFinished() {
         return _finished;
     }
     
-    virtual void tick(sensors_t& sensors, Motor& left_motor, Motor& right_motor, boolean go_home = false) {
+    void tick(sensors_t& sensors, Motor& left_motor, Motor& right_motor, boolean go_home = false) {
         if(!_finished) {
             _step.tick(sensors, left_motor, right_motor);
             if(_step.isDone()) {
+                Serial.println(" [OK]");
                 featchNextStep(go_home);
             }
         }
