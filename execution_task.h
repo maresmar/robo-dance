@@ -24,28 +24,46 @@ public:
 
 class GoStep : public PlanStep {
 private:
+    enum {WAITING_LINE, WAITING_STOP, STOPED} _step = WAITING_LINE;
     bool _done = false;
-    unsigned long _line_time = ULONG_MAX;
-    const unsigned long LINE_OFFSET_TIME = 1000;
+    unsigned long _line_time = 0;
+    const unsigned long LINE_OFFSET_TIME = 400;
 public:
     virtual void tick(sensors_t& sensors, Motor& left_motor, Motor& right_motor) {
-        // Detect line
-        if((sensors.left_dir && sensors.left_line) || (sensors.right_line && sensors.right_dir)) {
-            Serial.println("exe: GO: ON_LINE");
-            _line_time = millis();
-        }
-        // Controll mothors
-        if(millis() - _line_time <= LINE_OFFSET_TIME) {
-            left_motor.go(MAX_SPEED_PERCENT);
-            right_motor.go(MAX_SPEED_PERCENT);
-        } else {
-            left_motor.go(0);
-            right_motor.go(0);
-            _done = true;
+        switch (_step)
+        {
+        case WAITING_LINE:
+            if((sensors.left_dir && sensors.left_line) || (sensors.right_line && sensors.right_dir)) {
+                Serial.println("exe: GO: WAITING_STOP");
+                _line_time = millis();
+                _step = WAITING_STOP;
+                break;
+            }
+            if(sensors.left_line) {
+                left_motor.go(0);
+                right_motor.go(MAX_SPEED_PERCENT);
+            } else if(sensors.right_line) {
+                left_motor.go(MAX_SPEED_PERCENT);
+                right_motor.go(0);
+            } else {
+                left_motor.go(MAX_SPEED_PERCENT);
+                right_motor.go(MAX_SPEED_PERCENT);
+            }
+            break;
+        case WAITING_STOP:
+            if(millis() - _line_time > LINE_OFFSET_TIME) {
+                Serial.println("exe: G0: STOP");
+                left_motor.go(0);
+                right_motor.go(0);
+                _step = STOPED;
+            }
+            break;
+        case STOPED:
+            break;
         }
     }
     virtual bool isDone() {
-        return _done;
+        return _step == STOPED;
     }
 };
 
@@ -114,19 +132,19 @@ class ExecutionTask {
         switch (go_home ? _plan.goHome() : _plan.getNext(time))
         {
         case Left:
-            Serial.print("TL");
+            Serial.println("TL");
             _step = new TurnStep(true);
             break;
         case Right:
-            Serial.print("TR");
+            Serial.println("TR");
             _step = new TurnStep(false);
             break;
         case Go: // Go straight through one junction
-            Serial.print("GO");
+            Serial.println("GO");
             _step = new GoStep();
             break;
         case Wait:
-            Serial.print("wait");
+            Serial.println("wait");
             _step = new WaitStep();
             break;
         case Finished:
@@ -160,7 +178,6 @@ class ExecutionTask {
         if(!_finished) {
             _step->tick(sensors, left_motor, right_motor);
             if(_step->isDone()) {
-                Serial.println(" [OK]");
                 featchNextStep(go_home);
             }
         }
