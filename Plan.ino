@@ -82,14 +82,7 @@ PlanEntry Plan::getNextStep(const CompPlanEntry &cmd,
     return PlanEntry::Go;
   // Too early
   if (deciTimeElapsed < cmd.timePoint)
-  {
-    Serial.print("TIME:");
-    Serial.print(deciTimeElapsed);
-    Serial.print("; ");
-    Serial.println(cmd.timePoint);
-
     return PlanEntry::Wait;
-  }
   // The command is already finished, fetch a new one.
   return PlanEntry::Finished;
 }

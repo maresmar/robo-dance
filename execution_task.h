@@ -100,33 +100,33 @@ class ExecutionTask {
         Serial.print("exe(");
         unsigned long time = millis() - _start;
         Serial.print(time);
-        Serial.print("): ")
+        Serial.print("): ");
 
         // Next step
         switch (go_home ? _plan.goHome() : _plan.getNext(time))
         {
         case Left:
-            Serial.print("exe: TL");
+            Serial.print("TL");
             _step = TurnStep(true);
             break;
         case Right:
-            Serial.print("exe: TR");
+            Serial.print("TR");
             _step = TurnStep(false);
             break;
         case Go: // Go straight through one junction
-            Serial.print("exe: GO");
+            Serial.print("GO");
             _step = GoStep();
             break;
         case Wait:
-            Serial.print("exe: wait");
+            Serial.print("wait");
             _step = WaitStep();
             break;
         case Finished:
-            Serial.println("exe: DONE");
+            Serial.println("DONE");
             _finished  = true;
             break;
         default:
-            Serial.println("ERROR: exe: featchNextStep()");
+            Serial.println("ERROR: featchNextStep()");
             break;
         }
     }

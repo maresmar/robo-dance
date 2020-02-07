@@ -118,7 +118,7 @@ void loop() {
         state = waiting;
       break;
     default:
-      Serial.println("ERROR: main: loop");
+      Serial.println("main: ERROR: state");
       break;
   }
 }
