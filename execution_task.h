@@ -35,7 +35,7 @@ public:
         case WAITING_LINE:
             if((sensors.left_dir && sensors.left_line) || (sensors.right_line && sensors.right_dir)) {
                 Serial.println("exe: GO: WAITING_STOP");
-                // Fix if one wheel already stoped
+                // Fix if one wheel is already stoped
                 left_motor.go(MAX_SPEED_PERCENT);
                 right_motor.go(MAX_SPEED_PERCENT);
                 // Update state
