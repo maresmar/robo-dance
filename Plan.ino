@@ -45,11 +45,12 @@ CompPlanEntry to_home(RobotConfig init_pos) {
 
 Plan::Plan()
     : entries(nullptr), num_entries(0), curr_entry_i(0),
-      to_home_cmd(to_home(curr_pos)) {}
+      to_home_cmd(to_home(curr_pos)), home_orientation(curr_pos.curr_dir) {}
 
 Plan::Plan(uint8_t num_entries, CompPlanEntry *entries, RobotConfig init_pos)
     : entries(entries), num_entries(num_entries), curr_pos(init_pos),
-      curr_entry_i(0), to_home_cmd(to_home(init_pos)) {}
+      curr_entry_i(0), to_home_cmd(to_home(init_pos)),
+      home_orientation(init_pos.curr_dir) {}
 
 PlanEntry Plan::getNext(unsigned long miliTimeElapsed) {
   while (curr_entry_i < num_entries) {
@@ -66,7 +67,18 @@ PlanEntry Plan::getNext(unsigned long miliTimeElapsed) {
   return PlanEntry::Finished;
 }
 
-PlanEntry Plan::goHome() { return getNextStep(to_home_cmd, 0); }
+PlanEntry Plan::goHome() {
+
+  auto next = getNextStep(to_home_cmd, 0);
+  if (next == PlanEntry::Finished) {
+    if (curr_pos.curr_dir != home_orientation) {
+      curr_pos.curr_dir = rotateRight(curr_pos.curr_dir);
+      return PlanEntry::Right;
+    } else
+      return PlanEntry::Finished;
+  } else
+    return next;
+}
 
 PlanEntry Plan::getNextStep(const CompPlanEntry &cmd,
                             unsigned long miliTimeElapsed) {

@@ -70,6 +70,7 @@ private:
   uint8_t curr_entry_i;
   // ORDER DEPENDENT - must come after curr_pos.
   CompPlanEntry to_home_cmd;
+  Direction home_orientation;
 };
 
 #endif
