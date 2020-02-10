@@ -61,6 +61,7 @@ static_assert(sizeof(EEPROMSlotInfo) == 4,
               "Program was designed with 4 bytes header per slot. If changed, "
               "ensure that all plans and their headers fit into the EEPROM.");
 
+constexpr const int8_t magic_byte = 75;
 // First byte is the default slot number.
 constexpr const size_t EEPROM_header_size =
     1 + NumEEPROMSlots * sizeof(EEPROMSlotInfo);
@@ -140,21 +141,24 @@ void printErrMsg(ParseError e) {
 }
 bool Planner::loadDefault() {
   static const char *const str = "A1N E1T150 b2T350 3At450 4CT567 D2T700 ";
+  int8_t byte;
+  EEPROM.get(1023, byte);
+
   int8_t def_slot;
   EEPROM.get(0, def_slot);
   EEPROMSlotInfo info;
-  if (def_slot < 0 || def_slot >= NumEEPROMSlots) {
-    Serial.println(F("WARNING: Invalid default slot, uninitialized EEPROM? Fix "
-                     "me with DX command. Loading hardcoded string backup."));
+  if (def_slot < 0 || def_slot >= NumEEPROMSlots || magic_byte!=byte) {
+    Serial.println(F("WARNING: Invalid default slot or ninitialized EEPROM? Fix "
+                     "me with DX command and full EEPROM clear C0C1C2C3C4. Loading hardcoded string backup."));
     return loadFromString(str);
   }
   Serial.print(F("INFO: Loading the default plan from slot "));
   Serial.println(def_slot);
 
   EEPROM.get(1 + def_slot * sizeof(EEPROMSlotInfo), info);
-  if (info.num_entries == 0) {
+  if (info.num_entries == 0 || info.num_entries>MaxPlanLength) {
     Serial.println(
-        F("WARNING: The plan is empty, loading hardcoded string backup."));
+        F("WARNING: The plan is empty or invalid, loading hardcoded string backup."));
     return loadFromString(str);
   } else {
     loadFromEEPROM(def_slot);
@@ -199,6 +203,7 @@ bool Planner::processRemoteRequests() {
     Serial.println(num_active_entries);
   } else if (cmd == 'D') {
     EEPROM.put(0, (int8_t)slot);
+    EEPROM.put(1023,magic_byte);
     Serial.println(F("INFO: Default slot changed."));
   } else {
     Serial.println(F("ERROR: Unknown command."));
