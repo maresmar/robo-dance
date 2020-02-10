@@ -89,13 +89,15 @@ ParseError preparseCmd(CharGetter &getter, char command_str[2 + 5 + 1]) {
     return ParseError::UnexpectedEnd;
 
   for (int i = 0; i < 6; ++i) {
-    char last = command_str[2 + i] = getter.getNext(false);
+    char last = getter.peek_next(false);
     // The number ended
-    if (last == '\0' || isspace(last)) {
+    if (last == '\0' || isspace(last) || isalpha(last)) {
       command_str[2 + i] = '\0';
       break;
     } else if (i == 5) // Time won't fit into 16bits
       return ParseError::InvalidTime;
+    else
+      command_str[2 + i] = getter.getNext(false);
   }
   return ParseError::OK;
 }
