@@ -184,6 +184,8 @@ class ExecutionTask {
             if(_step->isDone()) {
                 featchNextStep(go_home);
             }
+        } else if(go_home) {
+            featchNextStep(go_home);
         }
     }
 };
