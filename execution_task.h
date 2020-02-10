@@ -142,8 +142,9 @@ class ExecutionTask {
     PlanStep* _step = 0;
     unsigned long _start;
     bool _finished;
+    enum { WAITING, EXECUTING, GOING_HOME } _state;
 
-    void featchNextStep(bool go_home) {
+    void featchNextStep() {
         // Time info
         Serial.print("exe(");
         unsigned long time = millis() - _start;
@@ -152,7 +153,7 @@ class ExecutionTask {
 
         // Next step
         delete _step;
-        switch (go_home ? _plan.goHome() : _plan.getNext(time))
+        switch ((_state == GOING_HOME) ? _plan.goHome() : _plan.getNext(time))
         {
         case Left:
             Serial.println("TL");
@@ -173,6 +174,7 @@ class ExecutionTask {
         case Finished:
             Serial.println("DONE");
             _finished  = true;
+            _step = nullptr;
             break;
         default:
             Serial.println("ERROR: featchNextStep()");
@@ -183,28 +185,45 @@ class ExecutionTask {
     ExecutionTask(): _plan() {
         _finished = false;
         _start = millis();
-        featchNextStep(false);
+        _state = WAITING;
+        featchNextStep();
     }
 
     void start(Plan&& plan) {
         _plan = plan;
         _finished = false;
         _start = millis();
-        featchNextStep(false);
+        _state = EXECUTING;
+        featchNextStep();
     }
 
     bool isFinished() {
         return _finished;
     }
+
+    void goHome() {
+        switch (_state)
+        {
+        case EXECUTING: 
+            _state = GOING_HOME;
+            if(_finished) {
+                _finished = false;
+                featchNextStep();
+            }
+            break;
+        default:
+            Serial.println("exe: Ilegal state");
+            break;
+        }
+        
+    }
     
-    void tick(sensors_t& sensors, Motor& left_motor, Motor& right_motor, boolean go_home = false) {
+    void tick(sensors_t& sensors, Motor& left_motor, Motor& right_motor) {
         if(!_finished) {
             _step->tick(sensors, left_motor, right_motor);
             if(_step->isDone()) {
-                featchNextStep(go_home);
+                featchNextStep();
             }
-        } else if(go_home) {
-            featchNextStep(go_home);
         }
     }
 };

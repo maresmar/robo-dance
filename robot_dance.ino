@@ -22,6 +22,7 @@ enum state_t {
   waiting,
   starting,
   executing,
+  go_home,
   going_home
 };
 
@@ -74,7 +75,10 @@ void readButton() {
       state = starting;
       break;
     case executing:
-      state = going_home;
+      state = go_home;
+      break;
+    default:
+      Serial.println("main: WARNING: button press in illegal state");
       break;
     }
   }
@@ -94,6 +98,12 @@ void setLed(bool enabled) {
   digitalWrite(LED_PORT, enabled);
 }
 
+int freeRam() {
+  extern int __heap_start, *__brkval; 
+  int v; 
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
+}
+
 void loop() {
   readButton();
   readSensors();
@@ -105,17 +115,26 @@ void loop() {
       break;
     case starting:
       Serial.println("main: Starting");
+      Serial.print("Free mem: ");
+      Serial.println(freeRam());
       setLed(true);
       exe_task.start(Planner::getActivePlan());
       state = executing;
     case executing:
       exe_task.tick(sensors, left_motor, right_motor);
       break;
-    case going_home:
+    case go_home:
       Serial.println("main: Going home");
-      exe_task.tick(sensors, left_motor, right_motor, true);
-      if(exe_task.isFinished())
+      Serial.print("Free mem: ");
+      Serial.println(freeRam());
+      exe_task.goHome();
+      state = going_home;
+    case going_home:
+      exe_task.tick(sensors, left_motor, right_motor);
+      if(exe_task.isFinished()) {
+        Serial.println("main: Waiting");
         state = waiting;
+      }
       break;
     default:
       Serial.println("main: ERROR: state");
