@@ -58,7 +58,7 @@ private:
   // If the robot wants to rotate in order to fulfill its command, it returns
   // either LEFT or RIGHT and rotates the current position. Otherwise it returns
   // Go but does not move the robot.
-  PlanEntry rotate(const CompPlanEntry &cmd);
+  PlanEntry rotate(Direction desired_dir);
   // Returns whether the robot wanted to and went straight.
   // It assumes that the robot tried to rotate and did not want to. I.e. rotate
   // returned Go.

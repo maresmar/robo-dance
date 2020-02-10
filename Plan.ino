@@ -71,11 +71,11 @@ PlanEntry Plan::goHome() {
 
   auto next = getNextStep(to_home_cmd, 0);
   if (next == PlanEntry::Finished) {
-    if (curr_pos.curr_dir != home_orientation) {
-      curr_pos.curr_dir = rotateRight(curr_pos.curr_dir);
-      return PlanEntry::Right;
-    } else
-      return PlanEntry::Finished;
+    auto rot_cmd = rotate(home_orientation);
+    if (rot_cmd != PlanEntry::Go)
+      return rot_cmd;
+    else
+      return next;
   } else
     return next;
 }
@@ -86,7 +86,7 @@ PlanEntry Plan::getNextStep(const CompPlanEntry &cmd,
   Direction c_dir = curr_pos.curr_dir;
 
   // Try to rotate
-  PlanEntry rot_cmd = rotate(cmd);
+  PlanEntry rot_cmd = rotate(desired_dir(cmd));
   if (rot_cmd != PlanEntry::Go)
     return rot_cmd;
   // Did not want to rotate, try to move.
@@ -120,11 +120,10 @@ Direction Plan::desired_dir(const CompPlanEntry &cmd) {
 }
 
 // Returns whether the robot rotated and if so, which way.
-PlanEntry Plan::rotate(const CompPlanEntry &cmd) {
+PlanEntry Plan::rotate(Direction d_dir) {
   using C = Direction;
   using P = PlanEntry;
   C c_dir = curr_pos.curr_dir;
-  C d_dir = desired_dir(cmd);
   if (d_dir == c_dir)
     return PlanEntry::Go;
 
