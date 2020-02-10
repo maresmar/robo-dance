@@ -24,14 +24,32 @@ public:
 
 class GoStep : public PlanStep {
 private:
-    enum {WAITING_LINE, WAITING_STOP, STOPED} _step = WAITING_LINE;
+    enum {START, WAITING_LINE, WAITING_STOP, STOPED, OUT_OF_PAPER} _step = START;
+    unsigned _tick = 0;
     bool _done = false;
     unsigned long _line_time = 0;
-    const unsigned long LINE_OFFSET_TIME = 400;
+    const unsigned long LINE_OFFSET_TIME = 300;
 public:
     virtual void tick(sensors_t& sensors, Motor& left_motor, Motor& right_motor) {
         switch (_step)
         {
+        case START:
+            if(sensors.left_line || sensors.midle_line || sensors.right_line) {
+                Serial.println("exe: GO: WAITING_LINE");
+                _step = WAITING_LINE;
+            } else {                   
+                // Let's give it a small try             
+                left_motor.go(MAX_SPEED_PERCENT/3);
+                right_motor.go(MAX_SPEED_PERCENT);
+                ++_tick;
+                if(_tick > 5000) {
+                    Serial.println("exe: GO: Out of paper");
+                    left_motor.go(0);
+                    right_motor.go(0);
+                    _step = OUT_OF_PAPER;
+                }
+            }
+            break;
         case WAITING_LINE:
             if((sensors.left_dir && sensors.left_line) || (sensors.right_line && sensors.right_dir)) {
                 Serial.println("exe: GO: WAITING_STOP");
@@ -62,6 +80,7 @@ public:
                 _step = STOPED;
             }
             break;
+        case OUT_OF_PAPER:
         case STOPED:
             break;
         }
